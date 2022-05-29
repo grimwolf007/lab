@@ -1,0 +1,31 @@
+$TTL    7200
+sandbox.ace.            IN      SOA     ns1.sandbox.ace. john.sandbox.ace. (
+                                        2022052801      ; Serial
+                                        7200            ; Refresh
+                                        3600            ; Retry
+                                        604800          ; Expire
+                                        7200)           ; NegativeCacheTTL
+
+                        IN      NS      ns1.sandbox.ace.
+
+                        IN      MX 50   mail.sandbox.ace.
+
+router                  IN      A       10.0.0.1
+ns1                     IN      A       10.0.0.2
+mail                    IN      A       10.0.0.3
+nas			IN      A       10.0.0.4
+vpn                     IN      A       10.0.0.5
+wiki                    IN      A       10.0.0.6
+gitlab                  IN      A       10.0.0.7
+gitlab-runner           IN      A       10.0.0.8
+personal-queue          IN      A       10.0.0.9
+queue-db                IN      A       10.0.0.10
+aquafalx                IN      A       10.0.0.11
+proxy                   IN      A       10.0.0.12
+
+
+
+
+pve1                    IN      A       10.0.0.201
+
+www                     IN      CNAME   personal-queue
