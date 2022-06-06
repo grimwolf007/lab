@@ -77,6 +77,9 @@
          EOF
          ```
 # Configuration
+ - [CephFS](https://docs.ceph.com/en/quincy/cephfs/) `ceph fs volume create <fs name>`
+   - Should Create MDSs automatically, if not you can deploy them [manually](https://docs.ceph.com/en/quincy/cephfs/add-remove-mds/)
+ - [Ceph Object Gateway](https://docs.ceph.com/en/quincy/radosgw/) ``
 
 # [Architecture](https://docs.ceph.com/en/quincy/architecture/)
 
