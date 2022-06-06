@@ -19,11 +19,63 @@
 * [Related Information](#related-information)
 
 # System Requirements
-  # In vm with cephadm
+## In vm with cephadm (automatically installed via bootstrap)
+ - Python3
+ - Systemd
+ - Podman or docker (podman recommended)
+ - Time syncronization (Chrony or NTP)
+ - LVM2
 
 # Installation
-  # In vm with cephadm
+## In vm with cephadm
+- [ ] Install cephadm
+  - [ ] Curl 
+     - `curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm`
+     - `chmod +x cephadm`
+     - `./cephadm add-repo --release quincy`
+     - `./cephadm install`
+     -  Confirm install `which cephadm` Output: /usr/sbin/cephadm
+  -  [ ] Centos Stream
+     - `dnf search release-ceph`
+     - `dnf install --assumeyes centos-release-ceph-quincy`
+     - `dnf install --assumeyes cephadm`
+ - [ ] [Bootstrap](https://docs.ceph.com/en/quincy/cephadm/install/#running-the-bootstrap-command)
+   - `cephadm bootstrap --mon-ip <mon-ip>`
+   - additional options are available  
+ - [ ] Add hosts 
+   > Cephadm must be able to log into all the Ceph cluster nodes as an user that has enough privileges to download container images, start containers and execute commands without prompting for a password. If you do not want to use the “root” user (default option in cephadm), you must provide cephadm the name of the user that is going to be used to perform all the cephadm operations. Use the command: 
+   ```
+   ceph cephadm set-user <user>
+   ```
+   > Prior to running this the cluster ssh key needs to be added to this users authorized_keys file and non-root users must have passwordless sudo access.
 
+  
+   - For each new host, from the master 
+     - `ssh-copy-id -f -i /etc/ceph/ceph.pub root@<new-host>` 
+     - `ceph orch host add <newhost> <ip>` without IP, it will be resolved with DNS
+       - if `--labels _admin` is added it will maintain a copy of the cluster config and keyring.
+         - Labels only allow you to choose where to put daemons. They are more for comments about hosts.
+       - [ ] For many hosts:
+         ```
+         cat << EOF >> cluster-inventory.yaml
+         service_type: host
+         hostname: node-00
+         addr: 192.168.0.10
+         labels:
+         - example1
+         - example2
+         ---
+         service_type: host
+         hostname: node-01
+         addr: 192.168.0.11
+         labels:
+         - grafana
+         ---
+         service_type: host
+         hostname: node-02
+         addr: 192.168.0.12
+         EOF
+         ```
 # Configuration
 
 # [Architecture](https://docs.ceph.com/en/quincy/architecture/)
@@ -60,13 +112,37 @@ Each map contains the status and info about the ceph components
   - Uses cephx (similar to Kerberos), but all monitors can generate tickets.
   - Cephx does not encrypt data in transit or at rest
 
-# Upgrade Path
-
+# [Upgrade Path](https://docs.ceph.com/en/quincy/cephadm/upgrade/)
+ - [ ] Ensure health of cluster `ceph -s`
+ - [ ] `ceph orch upgrade start --ceph-version <version>`
+   - Dockerhub is no longer used, make sure it points to the correct container `ceph orch upgrade start --image quay.io/ceph/ceph:v16.2.6`
+ - [ ] Monitor the upgrade `ceph orch upgrade status`
+   - For a progress bar `ceph -s`
+   - For the log `ceph -W cephadm`
+ - **To stop the upgrade** `ceph orch upgrade stop`
+## Common issues
+### Not enough managers
+  - To see existing `ceph orch ps --daemon-type mgr`
+  - To restart stopped `ceph orch daemon restart <name>`
+  - To make more `ceph orch apply mgr 2  # or more`
+### Failed to pull
+  - Make sure you are using the right image from the right repo
+  - Ensure each node can pull the image
+  - `ceph orch upgrade stop`
+  - `ceph orch upgrade start --ceph-version <version>`
 # Maintenance
 
-<Other>
 
 # Troubleshooting
+ ## To Remove Hosts 
+  - [ ] If a host is unrecoverable `ceph orch host rm <host> --offline --force`
+
+
+  - [ ] `ceph orch host drain <host>`
+  - [ ] Ensure all OSDs are removed `ceph orch osd rm status`
+  - [ ] Enesure all Daemons are removed `ceph orch ps <host>`
+  - [ ] Remove the host `ceph orch host rm <host>`
+  
 
 # Examples
 
