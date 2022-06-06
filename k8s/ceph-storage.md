@@ -26,8 +26,10 @@
 
 # Configuration
 
-# Architecture
- - Ceph Monitor (MON)
+# [Architecture](https://docs.ceph.com/en/quincy/architecture/)
+
+## Components
+- Ceph Monitor (MON)
    - Maintains the cluster map and ensures HA. 
  - Ceph Operating System Disk (OSD) Daemon
    - Reports the state of the disk to ceph MONs and other ceph OSDs
@@ -36,6 +38,27 @@
    - The endpoint for monitoring, orchestration and plug-ins 
  - Ceph Metadata Server (MDS)
    - Manages the file metadata for CephFS 
+
+## Storing Data
+ - Data is recieved from a ceph client and goes through the Block Device, Object Storage or File System API Where is is stored as RADOS object on an XFS filesystem. 
+ - Ceph also supports data pools which can limit storage for applications and change replication rules for data. They require the following: Who owns the data and who has access, number of placement groups (replicas), and which CRUSH rules to use
+
+## [Cluster Maps](https://docs.ceph.com/en/quincy/architecture/#cluster-map)
+Each map contains the status and info about the ceph components
+- Monitor: `ceph mon dump`
+ - OSD: `ceph osd dump`
+ - Placement Group (PG) `ceph pg dump`
+ - CRUSH: `ceph osd getcrushmap -o /tmp/CRUSH.map.comp; crushtool -d /tmp/CRUSH.map.comp -o /tmp/CRUSH.map; cat /tmp/CRUSH.map; rm /tmp/CRUSH.ma*;`
+ - Metadata Server (MDS): `ceph fs dump`
+
+## Cluster Quorum
+ - Monitor Majority and [Paxos](https://en.wikipedia.org/wiki/Paxos_(computer_science))
+   - Paxos garuntees Validity and Agreement, not Termination 
+     - Only valid data is stored. Data will not diverge. The algorithm may loop.
+
+## Authentication
+  - Uses cephx (similar to Kerberos), but all monitors can generate tickets.
+  - Cephx does not encrypt data in transit or at rest
 
 # Upgrade Path
 
