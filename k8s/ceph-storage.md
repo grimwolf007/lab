@@ -80,6 +80,7 @@
  - [CephFS](https://docs.ceph.com/en/quincy/cephfs/) `ceph fs volume create <fs name>`
    - Should Create MDSs automatically, if not you can deploy them [manually](https://docs.ceph.com/en/quincy/cephfs/add-remove-mds/)
  - [Ceph Object Gateway](https://docs.ceph.com/en/quincy/radosgw/) ``
+ - [Ceph Multi-Site (GEO-Replication)](https://docs.ceph.com/en/quincy/radosgw/multisite/)
 
 # [Architecture](https://docs.ceph.com/en/quincy/architecture/)
 
@@ -134,13 +135,48 @@ Each map contains the status and info about the ceph components
   - `ceph orch upgrade stop`
   - `ceph orch upgrade start --ceph-version <version>`
 # Maintenance
+## Start OSD
+  - When an OSD is added it creates a service. 
+  - [ ] Start it 'sudo systemctl start ceph-osd@{osd-num}'
+  - [ ] Enable it 'sudo systemctl enable ceph-osd@{osd-num}'
+## Add a new OSD (Expand Capacity)
+ - Ceph defaults to One Daemon per drive, if you have many drives on one host you can have one daemon manage many drives
+ - Weight is for adding drives with differing sizes
+ - [ ] On the new host
+   - [ ] Format the drive `sudo mkfs -t xfs /dev/{drive}`
+   - [ ] Get the UUID `lsblk -f`
+ - [ ] On master `ceph osd create {UUID}` save the ID
+ - [ ] On the new host 
+   - [ ] Mount the drive `sudo mount -o user_xattr /dev/{drive} /var/lib/ceph/osd/ceph-{ID}`
+   - [ ] Initialize the OSD `ceph-osd -i {ID} --mkfs --mkkey
+   - [ ] Register the auth key `ceph auth add osd.{id} osd 'allow *' mon 'allow rwx' -i /var/lib/ceph/osd/ceph-{id}/keyring`
+   - [ ] Add the OSD to the crush map `ceph osd crush add {ID} {weight}`  
+
+## Replace OSD (Disk Failure)
+  - [ ] Wait for osd to be safe for removal `while ! ceph osd safe-to-destroy osd.{id} ; do sleep 10 ; done
+`
+  - [ ] Destroy the OSD `ceph osd destroy {id} --yes-i-really-mean-it`
+  - [ ] If the replacement Disk was used before, zap it `ceph-volume lvm zap /dev/sdX`
+  - [ ] Recreate with old ID `ceph-volume lvm create --osd-id {id} --data /dev/sdX`
+
+## Remove OSD
+ - [ ] Remove from cluster `ceph osd out {osd-num}`
+ - [ ] Wait for the pg states to change from `active degraded` to `active clean`. `ceph -w`
+
+   **If the PGs get stuck in active+remapped**
+   ```
+   ceph osd in {osd-num}
+   ceph osd crush reweight osd.{osd-num} 0
+   ```
+  - [ ] Stop the OSD (From the host mounting the OSD) `sudo systemctl stop ceph-osd@{osd-num}` `sudo systemctl disable ceph-osd@{osd-num}`
+  - [ ] Remove drive, Daemon and authentication key from cluster `ceph osd purge {id} --yes-i-really-mean-it`
+  - [ ] Remove from ceph.conf `vim /etc/ceph/ceph.conf`
+  - [ ] Copy the new ceph.conf to the other hosts
 
 
 # Troubleshooting
  ## To Remove Hosts 
   - [ ] If a host is unrecoverable `ceph orch host rm <host> --offline --force`
-
-
   - [ ] `ceph orch host drain <host>`
   - [ ] Ensure all OSDs are removed `ceph orch osd rm status`
   - [ ] Enesure all Daemons are removed `ceph orch ps <host>`
