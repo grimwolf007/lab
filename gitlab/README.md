@@ -5,4 +5,5 @@
        new_pass = ""
        user.password = new_pass
        user.password_confirmation = new_pass
+       user.save!
        
